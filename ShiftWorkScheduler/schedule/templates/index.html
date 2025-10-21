@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shift Work Scheduler</title>
+</head>
+<body>
+    <button></button>
+</body>
+<script>
+    var request = new XMLHttpRequest(); // XMLHttpRequest 생성
+    request.open("GET", "//namu.wiki/raw/틀:틀%20모음/"); // 데이터를 GET Method로 요청
+    request.send(); // 실제 Send
+    request.onreadystatechange = function() {
+        if ( request.readyState == 4 && request.status == 200 ) { // request가 끝났으며(4), 성공적(200)인 경우. request.onload=()=>{} 으로 교체해도 가능하다.
+            document.getElementById("content").innerHTML = request.responseText; // #content 태그 내의 내용을 받아온 텍스트로 교체.
+        }
+   };
+
+</script>
+</html>
