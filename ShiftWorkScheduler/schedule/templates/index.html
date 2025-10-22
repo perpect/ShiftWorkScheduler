@@ -1,22 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shift Work Scheduler</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        #generate-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #content {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            white-space: pre-wrap; /* JSON/텍스트를 보기 좋게 표시 */
+        }
+    </style>
 </head>
 <body>
-    <button></button>
+    <h2>스케줄 생성기</h2>
+    <button id="generate-btn">테스트 스케줄 생성하기</button>
+    <div id="content">(결과가 여기에 표시됩니다)</div>
 </body>
+
 <script>
-    var request = new XMLHttpRequest(); // XMLHttpRequest 생성
-    request.open("GET", "//namu.wiki/raw/틀:틀%20모음/"); // 데이터를 GET Method로 요청
-    request.send(); // 실제 Send
-    request.onreadystatechange = function() {
-        if ( request.readyState == 4 && request.status == 200 ) { // request가 끝났으며(4), 성공적(200)인 경우. request.onload=()=>{} 으로 교체해도 가능하다.
-            document.getElementById("content").innerHTML = request.responseText; // #content 태그 내의 내용을 받아온 텍스트로 교체.
+    // Django CSRF 토큰을 쿠키에서 가져오는 헬퍼 함수
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
         }
-   };
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // 버튼 클릭 시 API 요청
+    document.getElementById("generate-btn").addEventListener("click", function() {
+        const contentDiv = document.getElementById("content");
+        contentDiv.innerHTML = "스케줄 생성 중... (최대 30초 소요)";
+
+        // 1. Django 폼으로 보낼 테스트 데이터 (JSON)
+        // solve.py 예제와 동일한 값 사용
+        const payload = {
+            num_workers: 3,
+            num_days: 30,
+            start_day_of_week: 5, // 0=월, 1=화, ... 5=토
+            max_monthly_hours: 250,
+            holidays: [24], // 1-based [24]
+
+            fixed_assignments: [
+                {"worker": 1, "day": 11, "shift": 3},
+                {"worker": 1, "day": 12, "shift": 3},
+                {"worker": 1, "day": 13, "shift": 3},
+                {"worker": 1, "day": 14, "shift": 3},
+                {"worker": 1, "day": 15, "shift": 3},
+                {"worker": 1, "day": 16, "shift": 3},
+                {"worker": 1, "day": 1, "shift": 0}
+            ]
+        };
+
+        // 2. XMLHttpRequest 설정
+        var request = new XMLHttpRequest();
+        request.open("POST", "/api/solve_schedule/", true); 
+        request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        // Django는 @csrf_exempt를 쓰지 않는 한 토큰 필요
+        if (csrftoken) {
+            request.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+
+        // 3. 요청 상태 변경 시 처리
+        request.onreadystatechange = function() {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+                    const response = JSON.parse(request.responseText);
+                    contentDiv.innerHTML = JSON.stringify(response, null, 2);
+                } else {
+                    try {
+                        const response = JSON.parse(request.responseText);
+                        contentDiv.innerHTML = `[에러 ${request.status}]\n${JSON.stringify(response, null, 2)}`;
+                    } catch (e) {
+                        contentDiv.innerHTML = `[에러 ${request.status}]\n${request.responseText}`;
+                    }
+                }
+            }
+        };
+
+        // 4. JSON.stringify로 변환하여 요청 전송
+        request.send(JSON.stringify(payload));
+    });
 
 </script>
 </html>

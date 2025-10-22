@@ -23,4 +23,5 @@ app_name = "schedule"
 
 urlpatterns = [
     path("", schedule.views.index, name="index"),
+    path("api/solve_schedule/", schedule.views.solve_schedule, name="solve_schedule"),
 ]
